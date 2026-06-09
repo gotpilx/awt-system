@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แจ้งปัญหา - พรรคเลือกตั้ง อวท.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2 family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        .bg-animate { background: linear-gradient(-45deg, #0f172a, #1e3a8a, #3b82f6, #06b6d4); background-size: 400% 400%; animation: gradient 15s ease infinite; }
+        @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    </style>
+</head>
+<body class="bg-animate min-h-screen flex items-center justify-center p-4 relative overflow-hidden my-8">
+
+    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+
+    <div class="bg-white/95 backdrop-blur-xl border border-white/40 w-full max-w-md rounded-[2rem] shadow-2xl p-8 relative z-10 my-4">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <i class="fa-solid fa-bullhorn text-white text-2xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-cyan-500">พรรคเลือกตั้ง อวท.</h1>
+            <p class="text-gray-500 mt-2 text-sm font-medium">ระบบรับฟังปัญหาและข้อเสนอแนะ</p>
+        </div>
+
+        <form id="complaintForm" class="space-y-5">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fa-solid fa-user text-blue-500 mr-2"></i>ชื่อผู้ส่ง <span class="text-xs text-gray-400 font-normal">(ไม่ระบุชื่อก็ได้)</span></label>
+                <div class="relative">
+                    <input type="text" id="sender_name" placeholder="ระบุชื่อ หรือ นามแฝง..." class="w-full bg-white border border-gray-200 text-gray-700 rounded-xl px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><i class="fa-solid fa-id-badge text-gray-400"></i></div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fa-solid fa-layer-group text-blue-500 mr-2"></i>หมวดหมู่เรื่องที่ต้องการแจ้ง</label>
+                <div class="relative">
+                    <select id="category" required class="w-full bg-white border border-gray-200 text-gray-700 rounded-xl px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer">
+                        <option value="" disabled selected>-- กรุณาเลือกหมวดหมู่ --</option>
+                        <option value="ปัญหาความสะอาด">✨ ปัญหาความสะอาด</option>
+                        <option value="ห้องน้ำ">🚽 ปัญหาห้องน้ำ</option>
+                        <option value="กิจกรรม">🎪 เรื่องกิจกรรม</option>
+                        <option value="อื่นๆ">💬 ความต้องการอื่นๆ</option>
+                    </select>
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><i class="fa-solid fa-list-ul text-gray-400"></i></div>
+                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none"><i class="fa-solid fa-chevron-down text-gray-400 text-sm"></i></div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fa-solid fa-pen-clip text-blue-500 mr-2"></i>รายละเอียด</label>
+                <div class="relative">
+                    <textarea id="details" rows="4" required placeholder="อธิบายปัญหาหรือสิ่งที่ต้องการให้เราช่วยแก้ไข..." class="w-full bg-white border border-gray-200 text-gray-700 rounded-xl px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    <div class="absolute top-4 left-4 pointer-events-none"><i class="fa-solid fa-align-left text-gray-400"></i></div>
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full flex justify-center items-center py-3.5 px-4 text-sm font-bold rounded-xl text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 shadow-lg transform hover:-translate-y-1 transition-all">
+                <i class="fa-solid fa-paper-plane mr-2" id="btnIcon"></i><span id="btnText">ส่งข้อเสนอแนะ</span>
+            </button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // รหัสจริงอัปเดตตามรูปของนายแล้ว
+        const firebaseConfig = {
+            apiKey: "AIzaSyBPkdSs48PhMJLX6fZ9P3sXGoW_5dshj1U",
+            authDomain: "awt-eb874.firebaseapp.com",
+            projectId: "awt-eb874",
+            storageBucket: "awt-eb874.firebasestorage.app",
+            messagingSenderId: "1062060370420",
+            appId: "1:1062060370420:web:d2bc00b2184bb252cf1267"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        document.getElementById('complaintForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnIcon = document.getElementById('btnIcon');
+
+            btnText.innerText = 'กำลังส่งข้อมูล...';
+            btnIcon.className = 'fa-solid fa-spinner fa-spin mr-2';
+            submitBtn.disabled = true;
+
+            const sender = document.getElementById('sender_name').value || 'ไม่ระบุตัวตน';
+            const category = document.getElementById('category').value;
+            const details = document.getElementById('details').value;
+            
+            const d = new Date();
+            const dateStr = d.toLocaleDateString('th-TH') + " " + d.toLocaleTimeString('th-TH');
+
+            try {
+                await addDoc(collection(db, "requests"), {
+                    sender_name: sender,
+                    category: category,
+                    details: details,
+                    status: 'รอดำเนินการ',
+                    dateString: dateStr,
+                    timestamp: Date.now()
+                });
+                alert("✅ ส่งข้อมูลสำเร็จ! ขอบคุณที่ร่วมเสนอแนะเพื่อพัฒนา อวท.");
+                document.getElementById('complaintForm').reset();
+            } catch (error) {
+                console.error(error);
+                alert("❌ เกิดข้อผิดพลาด ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+            } finally {
+                btnText.innerText = 'ส่งข้อเสนอแนะ';
+                btnIcon.className = 'fa-solid fa-paper-plane mr-2';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

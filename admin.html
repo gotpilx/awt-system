@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แอดมิน - พรรคเลือกตั้ง อวท.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }</style>
+</head>
+<body class="p-8">
+
+    <header class="mb-8 flex items-center gap-3">
+        <i class="fa-solid fa-shield-halved text-blue-600 text-3xl"></i>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">ระบบจัดการหลังบ้าน พรรค อวท.</h1>
+            <p class="text-sm text-gray-500">ข้อมูลจะอัปเดตอัตโนมัติ (Real-time) ทันทีที่มีคนส่งเข้ามา</p>
+        </div>
+    </header>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50/50">
+            <h2 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-inbox text-blue-500 mr-2"></i>รายการคำร้องทั้งหมด</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-500 text-sm border-b border-gray-200">
+                        <th class="px-6 py-4 font-semibold">วัน/เวลา</th>
+                        <th class="px-6 py-4 font-semibold">ผู้ส่ง</th>
+                        <th class="px-6 py-4 font-semibold">หมวดหมู่</th>
+                        <th class="px-6 py-4 font-semibold w-1/3">รายละเอียด</th>
+                        <th class="px-6 py-4 font-semibold text-center">สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body" class="text-sm text-gray-700">
+                    <tr><td colspan="5" class="text-center py-8 text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังโหลดข้อมูล...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // รหัสจริงอัปเดตตามรูปของนายแล้ว
+        const firebaseConfig = {
+            apiKey: "AIzaSyBPkdSs48PhMJLX6fZ9P3sXGoW_5dshj1U",
+            authDomain: "awt-eb874.firebaseapp.com",
+            projectId: "awt-eb874",
+            storageBucket: "awt-eb874.firebasestorage.app",
+            messagingSenderId: "1062060370420",
+            appId: "1:1062060370420:web:d2bc00b2184bb252cf1267"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.changeStatus = async function(id, newStatus) {
+            try {
+                const requestRef = doc(db, "requests", id);
+                await updateDoc(requestRef, { status: newStatus });
+            } catch (error) {
+                alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ");
+                console.error(error);
+            }
+        };
+
+        const q = query(collection(db, "requests"), orderBy("timestamp", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = '';
+
+            if (snapshot.empty) {
+                tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-gray-400">ยังไม่มีข้อมูลคำร้องในระบบ</td></tr>`;
+                return;
+            }
+
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                const id = docSnap.id;
+                
+                let badgeColor = 'bg-gray-100 text-gray-700';
+                if(data.category === 'ปัญหาความสะอาด') badgeColor = 'bg-orange-100 text-orange-700';
+                if(data.category === 'ห้องน้ำ') badgeColor = 'bg-purple-100 text-purple-700';
+                if(data.category === 'กิจกรรม') badgeColor = 'bg-blue-100 text-blue-700';
+
+                let selectColor = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+                if(data.status === 'กำลังแก้ไข') selectColor = 'bg-blue-50 text-blue-700 border-blue-200';
+                if(data.status === 'เสร็จสิ้นแล้ว') selectColor = 'bg-green-50 text-green-700 border-green-200';
+
+                const row = document.createElement('tr');
+                row.className = "border-b border-gray-100 hover:bg-gray-50 transition-colors";
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">${data.dateString}</td>
+                    <td class="px-6 py-4 font-medium">${data.sender_name}</td>
+                    <td class="px-6 py-4"><span class="px-3 py-1 ${badgeColor} rounded-full text-xs font-bold">${data.category}</span></td>
+                    <td class="px-6 py-4 text-gray-600">${data.details}</td>
+                    <td class="px-6 py-4 text-center">
+                        <select onchange="changeStatus('${id}', this.value)" class="${selectColor} border text-xs rounded-lg px-3 py-2 focus:outline-none cursor-pointer font-bold w-full">
+                            <option value="รอดำเนินการ" ${data.status === 'รอดำเนินการ' ? 'selected' : ''}>รอดำเนินการ</option>
+                            <option value="กำลังแก้ไข" ${data.status === 'กำลังแก้ไข' ? 'selected' : ''}>กำลังแก้ไข</option>
+                            <option value="เสร็จสิ้นแล้ว" ${data.status === 'เสร็จสิ้นแล้ว' ? 'selected' : ''}>เสร็จสิ้นแล้ว</option>
+                        </select>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        });
+    </script>
+</body>
+</html>
